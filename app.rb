@@ -6,8 +6,6 @@ class Route
     @first_station = first_station
     @last_station = last_station
     @stations = [first_station, last_station]
-    #@stations.unshift(@first_station)
-    #@stations << @last_station
   end
 
   # Может добавлять промежуточную станцию в список
@@ -32,7 +30,7 @@ class Route
 end
 
 class Station
-  attr_reader :name
+  attr_reader :name, :trains
   # Имеет название, которое указывается при ее создании
   def initialize(name)
     @name = name
@@ -46,23 +44,11 @@ class Station
 
   # Может возвращать список всех поездов на станции, находящиеся в текущий 
   # момент
-  def train_list
-    @trains
-  end
-
-  def show_trains
-    @trains.each{|train| puts train.number}
-  end
 
   # Может возвращать список поездов на станции по типу (см. ниже): 
   # кол-во грузовых, пассажирских
-  def train_list_type
-    @trains_pass_count = 0
-    @trains.each{|train| @trains_pass_count += 1 if train.type == 'пассажирский'}
-    @trains_gruz_count = 0
-    @trains.each{|train| @trains_gruz_count += 1 if train.type == 'грузовой'}
-    puts "Количество пассажирских #{@trains_pass_count}"
-    puts "Количество Грузовых #{@trains_gruz_count}"
+  def train_list_type(type)
+    @trains.filter{|train| train.type == type}
   end
 
   # Может отправлять поезда (по одному за раз, при этом, 
@@ -80,82 +66,65 @@ class Train
   def initialize(number, type, quantity)
     @number = number
     @quantity = quantity
-    @train_station = []
-    @index = 0
+
     @type = type if (type == 'грузовой') || (type == 'пассажирский')
   end
 
-  # Может набирать скорость
-  #def speed(speed)
-   # @speed = speed
-  #end
-
-  # Может возвращать текущую скорость
-  #def current_speed
-   # @speed
-  #end
-
-  # Может тормозить (сбрасывать скорость до нуля)
   def stop
     @speed = 0
   end
 
-  # Может возвращать количество вагонов
-  #def quantity_vagons
-  ##  @quantity
-  #end
-
   # Может прицеплять/отцеплять вагоны (по одному вагону за операцию, метод просто
   # увеличивает или уменьшает количество вагонов). Прицепка/отцепка вагонов может 
   # осуществляться только если поезд не движется.
-  def vegon_connect_plus
+  def wagon_connect_plus
     @quantity += 1 if @speed == 0 
   end
 
-  def vegon_connect_minus
+  def wagon_connect_minus
     @quantity -= 1 if @speed == 0 
   end
 
   # Может принимать маршрут следования (объект класса Route). 
   # При назначении маршрута поезду, поезд автоматически помещается на первую станцию в маршруте.
   def route(route)
-    @train_route = route
-    @train_station = route.show_stations.first
-    #puts @train_station
-    @train_station.reception(self)
-    #@route[0].reception(self)
-    #@station = @route.show_first_station.reception(self)
+    @index = 0
+    @train_route = route.show_stations
+    station.reception(self)
   end
 
   # Может перемещаться между станциями, указанными в маршруте. Перемещение возможно вперед и назад, но только на 1 станцию за раз.
   def move_station_up
-    @train_station.send_train(self)
+    station.send_train(self)
     @index += 1
-    @train_station = @train_route.show_stations[@index]
-    @train_station.reception(self)
+    station.reception(self)
   end
 
   def move_station_down
-    @train_station.send_train(self)
+    station.send_train(self)
     @index -= 1
-    @train_station = @train_route.show_stations[@index]
-    @train_station.reception(self)
+    station.reception(self)
   end
 
   # Возвращать предыдущую станцию, текущую, следующую, на основе маршрута
-  def return_next_station
-    @next_train_station = @train_route.show_stations[@index + 1]
-    puts "Следующая станция поезда #{@next_train_station.name}"
+  def next_station
+    if @index + 1 ==  @train_route.length
+      puts "End"
+    else
+      @next_train_station = @train_route[@index + 1]
+    end
   end
 
-  def return_station
-    @train_station
-    puts "Текущая станция поезда #{@train_station.name}"
+  def station
+    @train_route[@index]
   end
   
-  def return_last_station
-    @last_train_station = @train_route.show_stations[@index - 1]
-    puts "Предыдущая станция поезда #{@last_train_station.name}"
+  def last_station
+    if @index == 0 
+      puts "Конечной станции нет"
+    else 
+      @last_train_station = @train_route[@index - 1]
+    end
   end
 end
 
@@ -209,24 +178,24 @@ puts "#{train1.speed}"
 train1.quantity
 puts "Кол-во вагонов в поезде №#{train1.number} =  #{train1.quantity}"
 
-train1.vegon_connect_plus
+train1.wagon_connect_plus
 puts "Кол-во вагонов в поезде №#{train1.number} после добавления  =  #{train1.quantity}"
 
-train2.vegon_connect_plus
+train2.wagon_connect_plus
 puts "Кол-во вагонов в поезде №#{train2.number} после добавления на скорости =  #{train2.quantity}"
 
-train1.vegon_connect_minus
-puts "Кол-во вагонов в поезде №#{train1.number} после удаления =  #{train1.quantity_vagons}"
+train1.wagon_connect_minus
+puts "Кол-во вагонов в поезде №#{train1.number} после удаления =  #{train1.quantity}"
 
 station1.reception(train1)
-station1.train_list
-puts "Поезда на станции #{station1.name} после метода добавления  = #{station1.train_list}"
+station1.trains
+puts "Поезда на станции #{station1.name} после метода добавления  = #{station1.trains}"
 
 station1.send_train(train1)
-station1.train_list
-puts "Поезда на станции удаление поезда с станции#{station1.train_list}"
+station1.trains
+puts "Поезда на станции удаление поезда с станции#{station1.trains}"
 
-#puts "До маршрута спсиок поездов на станции #{station1.train_list}"
+#puts "До маршрута спсиок поездов на станции #{station1.trains}"
 puts "список станций маршрут 1"
 route1.show_stations
 puts "список станций маршрут 2"
@@ -235,63 +204,67 @@ route2.show_stations
 puts "Добавление маршрута к поезду"
 train1.route(route1)
 puts "Количество поездов на станции №1 после добавления маршрута"
-station1.show_trains
+station1.trains
 
 puts "Кол-во поездов по типам"
-station1.train_list_type
+station1.train_list_type('грузовой')
 
 puts "Движение поезда по маршруту вверх"
 train1.move_station_up
 puts "Количество поездов на станции №1"
-station1.show_trains
+station1.trains
 puts "Количество поездов на станции №2"
-station2.show_trains
+station2.trains
 
 puts "Движение поезда по маршруту вверх"
 train1.move_station_up
 puts "Количество поездов на станции №2"
-station2.show_trains
+station2.trains
 puts "Количество поездов на станции №3"
-station3.show_trains
+station3.trains
 
 puts "Движение поезда по маршруту вверх"
 train1.move_station_up
 puts "Количество поездов на станции №3"
-station3.show_trains
+station3.trains
 puts "Количество поездов на станции №4"
-station4.show_trains
+station4.trains
 
 puts "Движение поезда по маршруту вверх"
 train1.move_station_up
 puts "Количество поездов на станции №4"
-station4.show_trains
+station4.trains
 puts "Количество поездов на станции №5"
-station5.show_trains
+station5.trains
 
 puts "Движение поезда по маршруту вниз"
 train1.move_station_down
 puts "Количество поездов на станции №5"
-station5.show_trains
+station5.trains
 puts "Количество поездов на станции №4"
-station4.show_trains
+station4.trains
 
 puts "Движение поезда по маршруту вниз"
 train1.move_station_down
 puts "Количество поездов на станции №4"
-station4.show_trains
+station4.trains
 puts "Количество поездов на станции №3"
-station3.show_trains
+station3.trains
 
-train1.return_station
-train1.return_next_station
-train1.return_last_station
+train1.station
+train1.next_station
+train1.last_station
 
+train2.route(route1)
 
+train3.route(route1)
+train3.move_station_up
+train3.move_station_up
+train3.move_station_up
+train3.move_station_up
+train3.next_station
 
-
-
-
-#puts "После маршрута спсиок поездов на станции #{station1.train_list}"
+#puts "После маршрута спсиок поездов на станции #{station1.trains}"
 
 #train1.move_station_up
-#puts "После маршрута спсиок поездов на станции #{station1.train_list}"
+#puts "После маршрута спсиок поездов на станции #{station1.trains}"
