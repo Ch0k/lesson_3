@@ -1,1 +1,0 @@
-load './route.rb'
